@@ -413,6 +413,14 @@ class BasePlugin:
          if (uv_index is not None):
             self.SendUVMeter(devname+"-uv", uv_index, tempc, battery, signal)
 
+         volume_m3 = None
+
+         if "volume_m3" in message:
+           volume_m3 = message['volume_m3']
+
+         if (volume_m3 is not None):
+            self.SendWaterMeter(devname+"-water", volume_m3, battery, signal)
+
     def getdevID(self,unitname):
           global Devices
           iUnit = -1
@@ -774,6 +782,38 @@ class BasePlugin:
            except:
              sVal = "0"
                 
+           try:
+            if battery is None:
+             battery = 255
+            Devices[iUnit].Update(nValue=0,sValue=str(sval),BatteryLevel=int(battery),SignalLevel=int(rssi))
+           except:
+            Domoticz.Debug(str(e))
+
+    def SendWaterMeter(self,unitname,volume,battery,rssi):
+          global Devices
+          iUnit = self.getdevID(unitname)
+          if iUnit<0 and self.learnmode!=False:
+            try:
+             iUnit = 0
+             for x in range(1,256):
+              if x not in Devices:
+               iUnit=x
+               break
+             if iUnit==0:
+              iUnit=len(Devices)+1
+             Domoticz.Device(Name=unitname, Unit=iUnit,Type=113,Subtype=0,Switchtype=2,Options="{'ValueQuantity':'Volume','ValueUnits':'m3'}",Used=0,DeviceID=unitname).Create()
+            except Exception as e:
+             Domoticz.Debug(str(e))
+             return False
+          if iUnit>0:
+           try:
+            divider = int(Settings.get("MeterDividerWater", 100))
+           except:
+            divider = 100
+           try:
+            sval = str(float(volume)*divider) # scale m3 so the water divider converts back to the correct m3
+           except:
+            sval = "0"
            try:
             if battery is None:
              battery = 255
